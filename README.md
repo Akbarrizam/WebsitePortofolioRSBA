@@ -7,7 +7,6 @@ Website portofolio resmi **Rumah Sakit Budi Asih Trenggalek**, dibangun dengan t
 ## 🌐 Live Demo
 
 > Setelah deploy, URL Vercel akan tersedia di sini.
-  website-portofolio-rsba.vercel.app
 
 ---
 
