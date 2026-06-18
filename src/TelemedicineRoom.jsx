@@ -35,7 +35,8 @@ const TelemedicineRoom = () => {
       setIsTyping(true);
 
       try {
-        const res = await fetch('https://rizmanxx-rsba-backend.hf.space', {
+        // FIX #4: Tambah path endpoint yang benar /chat-dokter
+        const res = await fetch('https://rizmanxx-rsba-backend.hf.space/chat-dokter', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pesan_pasien: userMsg })

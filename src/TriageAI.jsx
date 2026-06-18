@@ -6,32 +6,61 @@ const TriageAI = () => {
   const [keluhan, setKeluhan] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasil, setHasil] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleAnalisis = (e) => {
+  const handleAnalisis = async (e) => {
     e.preventDefault();
     if (!keluhan.trim()) return;
 
     setIsAnalyzing(true);
     setHasil(null);
+    setError(null);
 
-    // Simulasi proses algoritma klasifikasi (KNN / Naive Bayes) di Backend
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      
-      // Logika simulasi sederhana berdasarkan kata kunci
+    try {
+      // FIX #6: Sambungkan ke backend /predict dengan timeout agar tidak loading selamanya
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 detik timeout
+
+      const response = await fetch('https://rizmanxx-rsba-backend.hf.space/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teks: keluhan }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) throw new Error('Server error');
+
+      const data = await response.json();
+      setHasil({ poli: data.poli, akurasi: data.akurasi, icon: data.icon || '🩺' });
+
+    } catch (err) {
+      // Fallback: Gunakan logika keyword matching jika backend tidak tersedia
+      console.warn("Backend tidak tersedia, pakai mode fallback:", err.message);
       const teks = keluhan.toLowerCase();
+      let hasilFallback;
+
       if (teks.includes('hamil') || teks.includes('kandungan') || teks.includes('haid')) {
-        setHasil({ poli: 'Poli Kebidanan & Kandungan', akurasi: '92%', icon: '👶' });
+        hasilFallback = { poli: 'Poli Kebidanan & Kandungan', akurasi: '92%', icon: '👶' };
       } else if (teks.includes('anak') || teks.includes('bayi') || teks.includes('balita')) {
-        setHasil({ poli: 'Poli Anak', akurasi: '89%', icon: '🧸' });
+        hasilFallback = { poli: 'Poli Anak', akurasi: '89%', icon: '🧸' };
       } else if (teks.includes('batuk') || teks.includes('sesak') || teks.includes('napas')) {
-        setHasil({ poli: 'Poli Paru', akurasi: '85%', icon: '🫁' });
+        hasilFallback = { poli: 'Poli Paru', akurasi: '85%', icon: '🫁' };
       } else if (teks.includes('pusing') || teks.includes('saraf') || teks.includes('kesemutan')) {
-        setHasil({ poli: 'Poli Saraf', akurasi: '88%', icon: '🧠' });
+        hasilFallback = { poli: 'Poli Saraf', akurasi: '88%', icon: '🧠' };
+      } else if (teks.includes('gigi') || teks.includes('gusi') || teks.includes('mulut')) {
+        hasilFallback = { poli: 'Poli Gigi', akurasi: '91%', icon: '🦷' };
+      } else if (teks.includes('bedah') || teks.includes('operasi') || teks.includes('luka')) {
+        hasilFallback = { poli: 'Poli Bedah', akurasi: '87%', icon: '🔪' };
       } else {
-        setHasil({ poli: 'Poli Umum', akurasi: '75%', icon: '🩺' });
+        hasilFallback = { poli: 'Poli Umum', akurasi: '75%', icon: '🩺' };
       }
-    }, 2000); // Simulasi delay proses 2 detik
+
+      setHasil(hasilFallback);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (

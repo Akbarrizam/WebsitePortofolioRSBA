@@ -9,8 +9,8 @@ const PrediksiUGD = () => {
   const fetchPrediksi = async () => {
     setLoading(true);
     try {
-      // Mengambil data dari otak ANN Python kita
-      const response = await fetch('https://rizmanxx-rsba-backend.hf.space');
+      // FIX #2: Tambah path endpoint yang benar /predict-ugd
+      const response = await fetch('https://rizmanxx-rsba-backend.hf.space/predict-ugd');
       const data = await response.json();
       setDataPrediksi(data.data_prediksi);
       setWaktuUpdate(data.waktu_update);
@@ -42,8 +42,10 @@ const PrediksiUGD = () => {
     return 'from-emerald-400 to-teal-500 shadow-emerald-500/50';
   };
 
-  // Mencari nilai tertinggi untuk skala tinggi batang grafik
-  const maxEstimasi = Math.max(...dataPrediksi.map(d => d.estimasi), 50); 
+  // FIX #3: Guard agar tidak crash saat dataPrediksi masih kosong (spread empty array)
+  const maxEstimasi = dataPrediksi.length > 0
+    ? Math.max(...dataPrediksi.map(d => d.estimasi), 50)
+    : 50;
 
   return (
     <section className="py-20 bg-slate-900 border-t border-slate-800 relative overflow-hidden">
@@ -82,46 +84,54 @@ const PrediksiUGD = () => {
           </div>
 
           {/* Render Grafik Batang Kustom */}
-          <div className="flex items-end justify-between gap-2 md:gap-6 h-64 mt-8">
-            {dataPrediksi?.map((item, index) => {
-              // Hitung persentase tinggi batang (Maksimal 100%)
-              const tinggiPersen = (data.estimasi / maxEstimasi) * 100;
-              
-              return (
-                <div key={index} className="flex flex-col items-center flex-1 group">
-                  
-                  {/* Tooltip Hover (Estimasi Angka) */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity mb-2 bg-slate-900 text-white text-xs py-1 px-3 rounded-lg border border-slate-700 font-bold">
-                    {data.estimasi} Pasien
-                  </div>
-
-                  {/* Batang Grafik */}
-                  <div className="w-full relative flex justify-center h-full items-end">
-                    <div 
-                      className={`w-full max-w-[48px] rounded-t-lg bg-gradient-to-t shadow-lg transition-all duration-1000 ease-out ${getStatusWarna(data.status)} group-hover:brightness-125`}
-                      style={{ height: `${tinggiPersen}%`, minHeight: '10%' }} // Animasi tinggi dari Tailwind
-                    >
-                      {/* Tanda peringatan jika kritis */}
-                      {data.status === 'Kritis' && (
-                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                          <AlertTriangle size={16} className="text-white animate-bounce drop-shadow-md" />
-                        </div>
-                      )}
+          {loading ? (
+            <div className="flex items-center justify-center h-64 text-slate-400">
+              <RefreshCw size={32} className="animate-spin mr-3" />
+              <span>Memuat data prediksi...</span>
+            </div>
+          ) : (
+            <div className="flex items-end justify-between gap-2 md:gap-6 h-64 mt-8">
+              {/* FIX #1: Ganti nama variabel dari 'data' menjadi 'item' agar konsisten dengan parameter .map() */}
+              {dataPrediksi?.map((item, index) => {
+                // Hitung persentase tinggi batang (Maksimal 100%)
+                const tinggiPersen = (item.estimasi / maxEstimasi) * 100;
+                
+                return (
+                  <div key={index} className="flex flex-col items-center flex-1 group">
+                    
+                    {/* Tooltip Hover (Estimasi Angka) */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity mb-2 bg-slate-900 text-white text-xs py-1 px-3 rounded-lg border border-slate-700 font-bold">
+                      {item.estimasi} Pasien
                     </div>
-                  </div>
 
-                  {/* Label Bawah (Jam) */}
-                  <div className="mt-4 text-center">
-                    <p className="text-white font-bold">{data.jam}</p>
-                    <p className={`text-[10px] md:text-xs font-bold uppercase mt-1 ${data.status === 'Kritis' ? 'text-red-400' : data.status === 'Waspada' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                      {data.status}
-                    </p>
-                  </div>
+                    {/* Batang Grafik */}
+                    <div className="w-full relative flex justify-center h-full items-end">
+                      <div 
+                        className={`w-full max-w-[48px] rounded-t-lg bg-gradient-to-t shadow-lg transition-all duration-1000 ease-out ${getStatusWarna(item.status)} group-hover:brightness-125`}
+                        style={{ height: `${tinggiPersen}%`, minHeight: '10%' }}
+                      >
+                        {/* Tanda peringatan jika kritis */}
+                        {item.status === 'Kritis' && (
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <AlertTriangle size={16} className="text-white animate-bounce drop-shadow-md" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                </div>
-              );
-            })}
-          </div>
+                    {/* Label Bawah (Jam) */}
+                    <div className="mt-4 text-center">
+                      <p className="text-white font-bold">{item.jam}</p>
+                      <p className={`text-[10px] md:text-xs font-bold uppercase mt-1 ${item.status === 'Kritis' ? 'text-red-400' : item.status === 'Waspada' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        {item.status}
+                      </p>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Legenda Grafik */}
           <div className="mt-12 pt-6 border-t border-slate-700 flex flex-wrap gap-6 justify-center text-sm">

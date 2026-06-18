@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Calendar, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const KalenderInteraktif = () => {
@@ -16,6 +16,17 @@ const KalenderInteraktif = () => {
   ]);
 
   const [pesan, setPesan] = useState(null);
+  // FIX #9: Simpan ref timeout agar bisa dibersihkan saat unmount
+  const pesanTimeoutRef = useRef(null);
+
+  // FIX #9: Cleanup timeout saat komponen unmount untuk hindari memory leak
+  useEffect(() => {
+    return () => {
+      if (pesanTimeoutRef.current) {
+        clearTimeout(pesanTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // --- LOGIKA DRAG AND DROP (HTML5 API) --- //
 
@@ -44,7 +55,7 @@ const KalenderInteraktif = () => {
     const targetSlot = jadwal.find(j => j.id === slotId);
     if (targetSlot.terisiOleh !== null) {
       setPesan({ tipe: 'error', teks: 'Slot ini sudah dibooking pasien lain!' });
-      setTimeout(() => setPesan(null), 3000);
+      pesanTimeoutRef.current = setTimeout(() => setPesan(null), 3000);
       return;
     }
 
@@ -58,6 +69,7 @@ const KalenderInteraktif = () => {
 
     // Hapus pasien dari antrean tunggu
     setPasienMenunggu(prev => prev.filter(p => p.id !== draggedPasienId));
+    pesanTimeoutRef.current = setTimeout(() => setPesan(null), 4000);
     setPesan({ tipe: 'sukses', teks: `Berhasil booking di jam ${targetSlot.jam}` });
   };
 

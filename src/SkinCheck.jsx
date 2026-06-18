@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Upload, Camera, ShieldCheck, ImageIcon, Loader2 } from 'lucide-react';
+import { Camera, ShieldCheck, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 
 const SkinCheck = () => {
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  // FIX #5 (tambahan): State untuk menampilkan error ke user
+  const [error, setError] = useState(null);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -13,23 +15,48 @@ const SkinCheck = () => {
       setImage(file);
       setPreview(URL.createObjectURL(file));
       setResult(null);
+      setError(null);
     }
   };
 
+  // FIX #5: Tombol hapus kini juga mereset state `image` agar file lama tidak ikut terkirim
+  const handleHapus = () => {
+    setPreview(null);
+    setImage(null);
+    setResult(null);
+    setError(null);
+  };
+
   const uploadToAI = async () => {
+    if (!image) return;
     setLoading(true);
+    setError(null);
     const formData = new FormData();
     formData.append('file', image);
 
     try {
-      const response = await fetch('https://rizmanxx-rsba-backend.hf.space', {
+      // FIX #3: Tambah path endpoint yang benar /analyze-skin
+      const response = await fetch('https://rizmanxx-rsba-backend.hf.space/analyze-skin', {
         method: 'POST',
         body: formData,
       });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
       const data = await response.json();
+
+      // Cek apakah backend mengembalikan error
+      if (data.status === 'Error') {
+        throw new Error(data.message || 'Analisis gagal di server');
+      }
+
       setResult(data);
-    } catch (error) {
-      console.error("Gagal menganalisis:", error);
+    } catch (err) {
+      console.error("Gagal menganalisis:", err);
+      // FIX #5: Tampilkan pesan error yang informatif ke user
+      setError('Tidak dapat terhubung ke server analisis. Pastikan koneksi internet Anda stabil dan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -50,26 +77,42 @@ const SkinCheck = () => {
                 <Camera size={32} />
               </div>
               <span className="text-slate-700 font-medium">Klik untuk unggah foto kondisi kulit</span>
+              <span className="text-slate-400 text-sm mt-1">Format: JPG, PNG, WEBP</span>
               <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
             </label>
           ) : (
             <div className="space-y-6">
-              <img src={preview} alt="Preview" className="max-h-64 mx-auto rounded-2xl shadow-md" />
+              <img src={preview} alt="Preview" className="max-h-64 mx-auto rounded-2xl shadow-md object-cover" />
               <div className="flex justify-center gap-4">
-                <button onClick={() => setPreview(null)} className="px-6 py-2 text-slate-600 font-medium">Hapus</button>
+                {/* FIX #5: Gunakan handleHapus yang juga mereset state image */}
+                <button
+                  onClick={handleHapus}
+                  className="px-6 py-2 text-slate-600 font-medium flex items-center gap-2 hover:text-red-600 transition-colors"
+                >
+                  <RotateCcw size={16} /> Hapus
+                </button>
                 <button 
                   onClick={uploadToAI}
                   disabled={loading}
-                  className="bg-blue-600 text-white px-8 py-2 rounded-xl font-bold flex items-center gap-2"
+                  className="bg-blue-600 text-white px-8 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={20} />}
-                  Mulai Analisis AI
+                  {loading ? <Loader2 className="animate-spin" size={20} /> : <ShieldCheck size={20} />}
+                  {loading ? 'Menganalisis...' : 'Mulai Analisis AI'}
                 </button>
               </div>
             </div>
           )}
         </div>
 
+        {/* Pesan Error */}
+        {error && (
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
+            <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Hasil Analisis */}
         {result && (
           <div className="mt-8 p-6 bg-emerald-50 border border-emerald-100 rounded-2xl">
             <h4 className="font-bold text-emerald-800 text-lg mb-2">Hasil Analisis Visual:</h4>

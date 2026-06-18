@@ -78,9 +78,7 @@ const JadwalDokter = () => {
                 </div>
               </div>
 
-              <button className="w-full mt-6 py-2.5 border-2 border-slate-100 text-slate-700 rounded-xl text-sm font-bold hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors">
-                Buat Janji Temu
-              </button>
+
             </div>
           ))}
         </div>

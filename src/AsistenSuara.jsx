@@ -52,6 +52,14 @@ const AsistenSuara = () => {
     };
 
     recognitionRef.current = recognition;
+
+    // FIX #8: Cleanup — hentikan recognition saat komponen unmount agar tidak bocor ke background
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+        recognitionRef.current = null;
+      }
+    };
   }, []);
 
   // --- LOGIKA AI NAVIGASI ---
@@ -74,6 +82,10 @@ const AsistenSuara = () => {
     } else if (text.includes('atas') || text.includes('beranda') || text.includes('awal')) {
       setFeedback('Kembali ke beranda...');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } else if (text.includes('fasilitas')) {
+      setFeedback('Membuka halaman Fasilitas!');
+      document.getElementById('fasilitas')?.scrollIntoView({ behavior: 'smooth' });
 
     } else {
       setFeedback('Maaf, perintah tidak dikenali. Coba: "Lihat Jadwal".');
@@ -124,6 +136,7 @@ const AsistenSuara = () => {
       {/* Tombol Utama Melayang */}
       <button
         onClick={toggleListen}
+        title={isListening ? "Hentikan mendengarkan" : "Mulai asisten suara"}
         className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-xl shadow-blue-900/20 transition-all pointer-events-auto ${
           isListening 
             ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
